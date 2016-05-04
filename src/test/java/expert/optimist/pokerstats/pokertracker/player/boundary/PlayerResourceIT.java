@@ -41,13 +41,13 @@ public class PlayerResourceIT {
                 add(LAST_NAME, lastName).
                 build();
 
-        //create
+        // create
         Response postResponse = this.provider.target().request().
                 post(Entity.json(playerToCreate));
         assertThat(postResponse.getStatus(), is(201));
         String location = postResponse.getHeaderString(LOCATION);
 
-        //find
+        // find
         JsonObject dedicatedPlayer = this.provider.client().
                 target(location).
                 request(MediaType.APPLICATION_JSON).
@@ -57,7 +57,7 @@ public class PlayerResourceIT {
         assertTrue(dedicatedPlayer.getString(FIRST_NAME).contains(firstName));
         assertTrue(dedicatedPlayer.getString(LAST_NAME).contains(lastName));
 
-        //update
+        // update
         JsonObjectBuilder updateBuilder = Json.createObjectBuilder();
         JsonObject updated = updateBuilder.
                 add(FIRST_NAME, firstNameUpdated).
@@ -70,14 +70,14 @@ public class PlayerResourceIT {
                 .put(Entity.json(updated));
         assertThat(updateResponse.getStatus(), is(200));
 
-        //find it again
+        // find it again
         JsonObject updatedPlayer = this.provider.client().
                 target(location).
                 request(MediaType.APPLICATION_JSON).
                 get(JsonObject.class);
         assertTrue(updatedPlayer.getString(FIRST_NAME).contains(firstNameUpdated));
 
-        //findAll
+        // findAll
         Response response = this.provider.target().
                 request(MediaType.APPLICATION_JSON).
                 get();
@@ -86,11 +86,20 @@ public class PlayerResourceIT {
         assertFalse(allPlayers.isEmpty());
         assertThat(allPlayers, hasItem(updatedPlayer));
 
-        //deleting not-existing
+        // deleting not-existing
         Response deleteResponse = this.provider.target().
                 path("-42").
                 request(MediaType.APPLICATION_JSON).delete();
         assertThat(deleteResponse.getStatus(), is(204));
+
+        // delete
+        Response deleteCreatedResponse = this.provider
+                .target()
+                .path(String.valueOf(updatedPlayer.getInt("id")))
+                .request(MediaType.APPLICATION_JSON)
+                .delete();
+        assertThat(deleteResponse.getStatus(), is(204));
+
     }
 
 }
