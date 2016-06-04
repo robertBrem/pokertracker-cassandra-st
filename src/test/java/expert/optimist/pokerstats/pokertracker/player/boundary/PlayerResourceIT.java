@@ -2,8 +2,22 @@ package expert.optimist.pokerstats.pokertracker.player.boundary;
 
 
 import com.airhacks.rulz.jaxrsclient.JAXRSClientProvider;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.message.BasicNameValuePair;
 import org.junit.Rule;
 import org.junit.Test;
+import org.keycloak.OAuth2Constants;
+import org.keycloak.adapters.HttpClientBuilder;
+import org.keycloak.common.util.KeycloakUriBuilder;
+import org.keycloak.constants.ServiceUrlConstants;
+import org.keycloak.representations.AccessTokenResponse;
+import org.keycloak.util.JsonSerialization;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -12,6 +26,11 @@ import javax.json.JsonObjectBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.airhacks.rulz.jaxrsclient.JAXRSClientProvider.buildWithURI;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -29,29 +48,31 @@ public class PlayerResourceIT {
     public JAXRSClientProvider provider = buildWithURI("http://localhost:8080/pokertracker/resources/players");
 
     @Test
-    public void crud() {
+    public void crud() throws Exception {
         String firstName = "Robert";
         String lastName = "Brem";
         String firstNameUpdated = firstName + "updated";
         String lastNameUpdated = lastName + "updated";
 
         JsonObjectBuilder playerBuilder = Json.createObjectBuilder();
-        JsonObject playerToCreate = playerBuilder.
-                add(FIRST_NAME, firstName).
-                add(LAST_NAME, lastName).
-                build();
+        JsonObject playerToCreate = playerBuilder
+                .add(FIRST_NAME, firstName)
+                .add(LAST_NAME, lastName)
+                .build();
 
         // create
-        Response postResponse = this.provider.target().request().
-                post(Entity.json(playerToCreate));
+        Response postResponse = this.provider.target().request()
+                .header("Authorization", "Bearer " + getTokenResponse("admin", "admin").getToken())
+                .post(Entity.json(playerToCreate));
         assertThat(postResponse.getStatus(), is(201));
         String location = postResponse.getHeaderString(LOCATION);
 
         // find
-        JsonObject dedicatedPlayer = this.provider.client().
-                target(location).
-                request(MediaType.APPLICATION_JSON).
-                get(JsonObject.class);
+        JsonObject dedicatedPlayer = this.provider.client()
+                .target(location)
+                .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + getTokenResponse("test", "1234").getToken())
+                .get(JsonObject.class);
         assertThat(dedicatedPlayer.keySet(), hasItem(FIRST_NAME));
         assertThat(dedicatedPlayer.keySet(), hasItem(LAST_NAME));
         assertTrue(dedicatedPlayer.getString(FIRST_NAME).contains(firstName));
@@ -59,37 +80,42 @@ public class PlayerResourceIT {
 
         // update
         JsonObjectBuilder updateBuilder = Json.createObjectBuilder();
-        JsonObject updated = updateBuilder.
-                add(FIRST_NAME, firstNameUpdated).
-                add(LAST_NAME, lastNameUpdated).
-                build();
+        JsonObject updated = updateBuilder
+                .add(FIRST_NAME, firstNameUpdated)
+                .add(LAST_NAME, lastNameUpdated)
+                .build();
 
-        Response updateResponse = this.provider.client().
-                target(location).
-                request(MediaType.APPLICATION_JSON)
+        Response updateResponse = this.provider.client()
+                .target(location)
+                .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + getTokenResponse("admin", "admin").getToken())
                 .put(Entity.json(updated));
         assertThat(updateResponse.getStatus(), is(200));
 
         // find it again
-        JsonObject updatedPlayer = this.provider.client().
-                target(location).
-                request(MediaType.APPLICATION_JSON).
-                get(JsonObject.class);
+        JsonObject updatedPlayer = this.provider.client()
+                .target(location)
+                .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + getTokenResponse("test", "1234").getToken())
+                .get(JsonObject.class);
         assertTrue(updatedPlayer.getString(FIRST_NAME).contains(firstNameUpdated));
 
         // findAll
-        Response response = this.provider.target().
-                request(MediaType.APPLICATION_JSON).
-                get();
+        Response response = this.provider.target()
+                .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + getTokenResponse("test", "1234").getToken())
+                .get();
         assertThat(response.getStatus(), is(200));
         JsonArray allPlayers = response.readEntity(JsonArray.class);
         assertFalse(allPlayers.isEmpty());
         assertThat(allPlayers, hasItem(updatedPlayer));
 
         // deleting not-existing
-        Response deleteResponse = this.provider.target().
-                path("-42").
-                request(MediaType.APPLICATION_JSON).delete();
+        Response deleteResponse = this.provider.target()
+                .path("-42")
+                .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + getTokenResponse("admin", "admin").getToken())
+                .delete();
         assertThat(deleteResponse.getStatus(), is(204));
 
         // delete
@@ -97,10 +123,52 @@ public class PlayerResourceIT {
                 .target()
                 .path(String.valueOf(updatedPlayer.getInt("id")))
                 .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + getTokenResponse("admin", "admin").getToken())
                 .delete();
         assertThat(deleteResponse.getStatus(), is(204));
 
     }
+
+    private AccessTokenResponse getTokenResponse(String user, String password) throws ClientProtocolException, IOException {
+        HttpClient client = new HttpClientBuilder().disableTrustManager().build();
+        try {
+            HttpPost post = new HttpPost(KeycloakUriBuilder.fromUri("https://localhost:8443/auth")
+                    .path(ServiceUrlConstants.TOKEN_PATH).build("pokerstats"));
+            List<NameValuePair> formparams = new ArrayList<NameValuePair>();
+            formparams.add(new BasicNameValuePair(OAuth2Constants.GRANT_TYPE, "password"));
+            formparams.add(new BasicNameValuePair("username", user));
+            formparams.add(new BasicNameValuePair("password", password));
+
+            formparams.add(new BasicNameValuePair(OAuth2Constants.CLIENT_ID, "pokerui"));
+
+
+            UrlEncodedFormEntity form = new UrlEncodedFormEntity(formparams, "UTF-8");
+            post.setEntity(form);
+            HttpResponse response = client.execute(post);
+            int status = response.getStatusLine().getStatusCode();
+            HttpEntity entity = response.getEntity();
+            if (status != 200) {
+                throw new IOException("Bad status: " + status);
+            }
+            if (entity == null) {
+                throw new IOException("No Entity");
+            }
+            InputStream is = entity.getContent();
+            try {
+                AccessTokenResponse tokenResponse = JsonSerialization.readValue(is, AccessTokenResponse.class);
+                return tokenResponse;
+            } finally {
+                try {
+                    is.close();
+                } catch (IOException ignored) {
+                }
+            }
+        } finally {
+            client.getConnectionManager().shutdown();
+        }
+    }
+
+
 
 }
 

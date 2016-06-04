@@ -42,6 +42,12 @@
             <version>2.12</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-wildfly-adapter</artifactId>
+            <version>1.9.7.Final</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <finalName>pokertracker-st</finalName>
