@@ -10,6 +10,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.keycloak.OAuth2Constants;
@@ -26,9 +27,9 @@ import javax.json.JsonObjectBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,7 +46,52 @@ public class PlayerResourceIT {
     public static final String LOCATION = "Location";
 
     @Rule
-    public JAXRSClientProvider provider = buildWithURI("http://localhost:8080/pokertracker/resources/players");
+    public JAXRSClientProvider provider = buildWithURI("http://5.189.172.129:8282/pokertracker/resources/players");
+
+    @BeforeClass
+    public static void testSetup() throws Exception {
+        URL dockerfile = PlayerResourceIT.class.getResource("/Dockerfile");
+        String dockerfilePath = dockerfile.getPath();
+        runCommand("scp -i /root/.ssh/id_rsa " + dockerfilePath + " root@5.189.172.129:/root/");
+        URL initialDbSql = PlayerResourceIT.class.getResource("/initial_db.sql");
+        String initialDbSqlPath = initialDbSql.getPath();
+        runCommand("scp -i /root/.ssh/id_rsa " + initialDbSqlPath + " root@5.189.172.129:/root/");
+        URL pokertrackerWar = PlayerResourceIT.class.getResource("/pokertracker.war");
+        String pokertrackerWarPath = pokertrackerWar.getPath();
+        runCommand("scp -i /root/.ssh/id_rsa " + pokertrackerWarPath + " root@5.189.172.129:/root/");
+        URL standaloneXml = PlayerResourceIT.class.getResource("/standalone.xml");
+        String standaloneXmlPath = standaloneXml.getPath();
+        runCommand("scp -i /root/.ssh/id_rsa " + standaloneXmlPath + " root@5.189.172.129:/root/");
+        URL startScript = PlayerResourceIT.class.getResource("/start_container.sh");
+        String startScriptPath = startScript.getPath();
+        runRemoteScript(startScriptPath + " " + escape("0.0.1"));
+    }
+
+    public static void runRemoteScript(String startScriptPath) throws IOException, InterruptedException {
+        String startCommand = getRemotePreString("/root/.ssh/id_rsa", "root", "5.189.172.129") +
+                "'bash -s' < " + startScriptPath;
+        System.out.println("startCommand = " + startCommand);
+        runCommand(startCommand);
+    }
+
+    public static String getRemotePreString(String privateKeyLocation, String remoteUser, String remoteAddress) {
+        return "ssh -i " + privateKeyLocation + " " + remoteUser + "@" + remoteAddress + " ";
+    }
+
+    public static String escape(String toEscape) {
+        return "'" + toEscape.replaceAll("/", "\\\\/") + "'";
+    }
+
+    public static void runCommand(String command) throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(
+                "/bin/bash", "-c",
+                command);
+        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+        Process p = pb.start();
+        p.waitFor();
+    }
+
 
     @Test
     public void crud() throws Exception {
@@ -132,9 +178,9 @@ public class PlayerResourceIT {
     private AccessTokenResponse getTokenResponse(String user, String password) throws ClientProtocolException, IOException {
         HttpClient client = new HttpClientBuilder().disableTrustManager().build();
         try {
-            HttpPost post = new HttpPost(KeycloakUriBuilder.fromUri("https://localhost:8443/auth")
+            HttpPost post = new HttpPost(KeycloakUriBuilder.fromUri("https://5.189.172.129:8443/auth")
                     .path(ServiceUrlConstants.TOKEN_PATH).build("pokerstats"));
-            List<NameValuePair> formparams = new ArrayList<NameValuePair>();
+            List<NameValuePair> formparams = new ArrayList<>();
             formparams.add(new BasicNameValuePair(OAuth2Constants.GRANT_TYPE, "password"));
             formparams.add(new BasicNameValuePair("username", user));
             formparams.add(new BasicNameValuePair("password", password));
@@ -167,8 +213,6 @@ public class PlayerResourceIT {
             client.getConnectionManager().shutdown();
         }
     }
-
-
 
 }
 
