@@ -53,6 +53,7 @@ public class PlayerResourceIT {
     @BeforeClass
     public static void testSetup() throws Exception {
         String privateKeyLocation = EnvironmentVariableGetter.getEnv(PRIVATE_KEY_LOCATION);
+        System.out.println("privateKeyLocation = " + privateKeyLocation);
 
         URL dockerfile = PlayerResourceIT.class.getResource("/Dockerfile");
         String dockerfilePath = dockerfile.getPath();
