@@ -2,6 +2,7 @@ package expert.optimist.pokerstats.pokertracker.player.boundary;
 
 
 import com.airhacks.rulz.jaxrsclient.JAXRSClientProvider;
+import expert.optimist.pokerstats.pokertracker.EnvironmentVariableGetter;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -44,31 +45,34 @@ public class PlayerResourceIT {
     public static final String FIRST_NAME = "firstName";
     public static final String LAST_NAME = "lastName";
     public static final String LOCATION = "Location";
+    public static final String PRIVATE_KEY_LOCATION = "PRIVATE_KEY_LOCATION";
 
     @Rule
     public JAXRSClientProvider provider = buildWithURI("http://5.189.172.129:8282/pokertracker/resources/players");
 
     @BeforeClass
     public static void testSetup() throws Exception {
+        String privateKeyLocation = EnvironmentVariableGetter.getEnv(PRIVATE_KEY_LOCATION);
+
         URL dockerfile = PlayerResourceIT.class.getResource("/Dockerfile");
         String dockerfilePath = dockerfile.getPath();
-        runCommand("scp -i /root/.ssh/id_rsa " + dockerfilePath + " root@5.189.172.129:/root/");
+        runCommand("scp -i " + privateKeyLocation + " " + dockerfilePath + " root@5.189.172.129:/root/");
         URL initialDbSql = PlayerResourceIT.class.getResource("/initial_db.sql");
         String initialDbSqlPath = initialDbSql.getPath();
-        runCommand("scp -i /root/.ssh/id_rsa " + initialDbSqlPath + " root@5.189.172.129:/root/");
+        runCommand("scp -i " + privateKeyLocation + " " + initialDbSqlPath + " root@5.189.172.129:/root/");
         URL pokertrackerWar = PlayerResourceIT.class.getResource("/pokertracker.war");
         String pokertrackerWarPath = pokertrackerWar.getPath();
-        runCommand("scp -i /root/.ssh/id_rsa " + pokertrackerWarPath + " root@5.189.172.129:/root/");
+        runCommand("scp -i " + privateKeyLocation + " " + pokertrackerWarPath + " root@5.189.172.129:/root/");
         URL standaloneXml = PlayerResourceIT.class.getResource("/standalone.xml");
         String standaloneXmlPath = standaloneXml.getPath();
-        runCommand("scp -i /root/.ssh/id_rsa " + standaloneXmlPath + " root@5.189.172.129:/root/");
+        runCommand("scp -i " + privateKeyLocation + " " + standaloneXmlPath + " root@5.189.172.129:/root/");
         URL startScript = PlayerResourceIT.class.getResource("/start_container.sh");
         String startScriptPath = startScript.getPath();
         runRemoteScript(startScriptPath + " " + escape("0.0.1"));
     }
 
     public static void runRemoteScript(String startScriptPath) throws IOException, InterruptedException {
-        String startCommand = getRemotePreString("/root/.ssh/id_rsa", "root", "5.189.172.129") +
+        String startCommand = getRemotePreString(EnvironmentVariableGetter.getEnv(PRIVATE_KEY_LOCATION), "root", "5.189.172.129") +
                 "'bash -s' < " + startScriptPath;
         System.out.println("startCommand = " + startCommand);
         runCommand(startCommand);
