@@ -125,6 +125,7 @@ public class PlayerResourceIT {
                 .post(Entity.json(playerToCreate));
         assertThat(postResponse.getStatus(), is(201));
         String location = postResponse.getHeaderString(LOCATION);
+        String commandLocation = location.replace("pokertracker", "pokertracker-query");
 
         // find
         JsonObject dedicatedPlayer = this.queryProvider.client()
@@ -145,7 +146,7 @@ public class PlayerResourceIT {
                 .build();
 
         Response updateResponse = this.commandProvider.client()
-                .target(location)
+                .target(commandLocation)
                 .request(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + getTokenResponse("admin", "admin").getToken())
                 .put(Entity.json(updated));
