@@ -125,9 +125,7 @@ public class PlayerResourceIT {
                 .post(Entity.json(playerToCreate));
         assertThat(postResponse.getStatus(), is(201));
         String location = postResponse.getHeaderString(LOCATION);
-        String commandLocation = location.replace("pokertracker", "pokertracker-query");
-        System.out.println("location = " + location);
-        System.out.println("commandLocation = " + commandLocation);
+        String commandLocation = location.replace("pokertracker-query", "pokertracker");
 
         // find
         JsonObject dedicatedPlayer = this.queryProvider.client()
