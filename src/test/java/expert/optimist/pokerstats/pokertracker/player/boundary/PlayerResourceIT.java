@@ -63,8 +63,10 @@ public class PlayerResourceIT {
         copyFileToServer("/keycloak/standalone.xml", "keycloak");
 
         copyFileToServer("/pokertracker-command/Dockerfile", "pokertracker-command");
+        copyFileToServer("/pokertracker-command/pokertracker.war", "pokertracker-command");
 
         copyFileToServer("/pokertracker-query/Dockerfile", "pokertracker-query");
+        copyFileToServer("/pokertracker-command/pokertracker-query.war", "pokertracker-command");
 
         copyFileToServer("/initial_db.sql", "");
 
