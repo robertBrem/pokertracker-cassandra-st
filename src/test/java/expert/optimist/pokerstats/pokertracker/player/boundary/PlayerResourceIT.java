@@ -63,9 +63,10 @@ public class PlayerResourceIT {
         copyFileToServer("/keycloak/standalone.xml", "keycloak");
 
         copyFileToServer("/pokertracker-command/Dockerfile", "pokertracker-command");
-        copyFileToServer("/pokertracker-command/initial_db.sql", "pokertracker-command");
 
         copyFileToServer("/pokertracker-query/Dockerfile", "pokertracker-query");
+
+        copyFileToServer("/initial_db.sql", "");
 
         URL startScript = PlayerResourceIT.class.getResource("/start_container.sh");
         String startScriptPath = startScript.getPath();
