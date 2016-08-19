@@ -59,23 +59,23 @@ public class PlayerResourceIT {
     public static void testSetup() throws Exception {
         PRIVATE_KEY_PATH = EnvironmentVariableGetter.getEnv(PRIVATE_KEY_LOCATION);
 
-        copyFileToServer("/keycloak/Dockerfile");
-        copyFileToServer("/keycloak/standalone.xml");
+        copyFileToServer("/keycloak/Dockerfile", "keycloak");
+        copyFileToServer("/keycloak/standalone.xml", "keycloak");
 
-        copyFileToServer("/pokertracker-command/Dockerfile");
-        copyFileToServer("/pokertracker-command/initial_db.sql");
+        copyFileToServer("/pokertracker-command/Dockerfile", "pokertracker-command");
+        copyFileToServer("/pokertracker-command/initial_db.sql", "pokertracker-command");
 
-        copyFileToServer("/pokertracker-query/Dockerfile");
+        copyFileToServer("/pokertracker-query/Dockerfile", "pokertracker-query");
 
         URL startScript = PlayerResourceIT.class.getResource("/start_container.sh");
         String startScriptPath = startScript.getPath();
         runRemoteScript(startScriptPath + " " + escape("0.0.1"));
     }
 
-    public static void copyFileToServer(String relativePath) throws Exception {
+    public static void copyFileToServer(String relativePath, String destinationFolder) throws Exception {
         URL fileUrl = PlayerResourceIT.class.getResource(relativePath);
         String filePath = fileUrl.getPath();
-        runCommand("scp -i " + PRIVATE_KEY_PATH + " " + filePath + " root@5.189.172.129:/root/");
+        runCommand("scp -i " + PRIVATE_KEY_PATH + " " + filePath + " root@5.189.172.129:/root/" + destinationFolder);
     }
 
     public static void runRemoteScript(String startScriptPath) throws IOException, InterruptedException {

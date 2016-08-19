@@ -88,7 +88,7 @@ mkdir pokertracker-query-docker
 cp pokertracker-query/pokertracker-query.war pokertracker-query-docker
 cp pokertracker-query/Dockerfile pokertracker-query-docker
 
-echo "build image pokertracker-command"
+echo "build image pokertracker-query"
 docker build -t registry:5000/robertbrem/pokertracker-query:$VERSION pokertracker-query-docker
 docker stop pokertracker-query && docker rm pokertracker-query
 docker run -d -p 8383:8080 --name pokertracker-query \
