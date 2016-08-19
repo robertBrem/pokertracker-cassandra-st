@@ -58,14 +58,22 @@ docker run --name kafka -d -p 9092:9092 \
 -e KAFKA_ZOOKEEPER_CONNECT=`ip addr show docker0 | grep "scope global" | awk '{print $2}' | sed 's/\/.*//'`:2181 \
 cloudtrackinc/kubernetes-kafka
 
+echo "copy files for keycloak"
+rm -r wildfly-keycloak-docker
+mkdir wildfly-keycloak-docker
+cp keycloak/Dockerfile wildfly-keycloak-docker
+cp keycloak/standalone.xml wildfly-keycloak-docker
+
+echo "build image wildfly-keycloak"
+docker build -t registry:5000/robertbrem/wildfly-keycloak wildfly-keycloak-docker
+
 echo "copy files for pokertracker"
 rm -r pokertracker-docker
 mkdir pokertracker-docker
-cp pokertracker.war pokertracker-docker
-cp Dockerfile pokertracker-docker
-cp standalone.xml pokertracker-docker
+cp pokertracker-command/pokertracker.war pokertracker-docker
+cp pokertracker-command/Dockerfile pokertracker-docker
 
-echo "build image"
+echo "build image pokertracker-command"
 docker build -t registry:5000/robertbrem/pokertracker:$VERSION pokertracker-docker
 docker stop pokertracker && docker rm pokertracker
 docker run -d -p 8282:8080 --name pokertracker \
@@ -74,10 +82,32 @@ docker run -d -p 8282:8080 --name pokertracker \
 registry:5000/robertbrem/pokertracker:$VERSION
 echo "Docker container running with name pokertracker"
 
-echo " wait for wildfly to start"
+echo "copy files for pokertracker-query"
+rm -r pokertracker-query-docker
+mkdir pokertracker-query-docker
+cp pokertracker-query/pokertracker-query.war pokertracker-query-docker
+cp pokertracker-query/Dockerfile pokertracker-query-docker
+
+echo "build image pokertracker-command"
+docker build -t registry:5000/robertbrem/pokertracker-query:$VERSION pokertracker-query-docker
+docker stop pokertracker-query && docker rm pokertracker-query
+docker run -d -p 8383:8080 --name pokertracker-query \
+-e KAFKA_ADDRESS=`ip addr show docker0 | grep "scope global" | awk '{print $2}' | sed 's/\/.*//'`:9092 \
+registry:5000/robertbrem/pokertracker-query:$VERSION
+echo "Docker container running with name pokertracker-query"
+
+echo " wait for pokertracker to start"
 while [ $(curl --write-out %{http_code} --silent --output /dev/null http://localhost:8282/pokertracker/resources/health) -ne "200" ]
 do
  echo "$(date) - still trying"
  sleep 1
 done
-echo "$(date) - connected successfully"
+echo "$(date) - connected to pokertracker successfully"
+
+echo " wait for pokertracker-query to start"
+while [ $(curl --write-out %{http_code} --silent --output /dev/null http://localhost:8383/pokertracker-query/resources/health) -ne "200" ]
+do
+ echo "$(date) - still trying"
+ sleep 1
+done
+echo "$(date) - connected to pokertracker-query successfully"
