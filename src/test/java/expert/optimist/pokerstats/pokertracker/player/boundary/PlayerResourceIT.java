@@ -53,7 +53,7 @@ public class PlayerResourceIT {
     public JAXRSClientProvider commandProvider = buildWithURI("http://5.189.172.129:8282/pokertracker/resources/players");
 
     @Rule
-    public JAXRSClientProvider queryProvider = buildWithURI("http://5.189.172.129:8383/pokertracker/resources/players");
+    public JAXRSClientProvider queryProvider = buildWithURI("http://5.189.172.129:8383/pokertracker-query/resources/players");
 
     @BeforeClass
     public static void testSetup() throws Exception {
