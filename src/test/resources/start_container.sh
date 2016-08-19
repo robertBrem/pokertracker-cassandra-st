@@ -53,7 +53,7 @@ docker run --name kafka -d -p 9092:9092 \
 -e KAFKA_AUTO_CREATE_TOPICS_ENABLE="false" \
 -e KAFKA_PORT="9092" \
 -e KAFKA_ADVERTISED_PORT="9092" \
--e KAFKA_CREATE_TOPICS="pokertracker:16:1" \
+-e KAFKA_CREATE_TOPICS="pokertracker:1:1" \
 -e KAFKA_ADVERTISED_HOST_NAME=`ip addr show docker0 | grep "scope global" | awk '{print $2}' | sed 's/\/.*//'` \
 -e KAFKA_ZOOKEEPER_CONNECT=`ip addr show docker0 | grep "scope global" | awk '{print $2}' | sed 's/\/.*//'`:2181 \
 cloudtrackinc/kubernetes-kafka
