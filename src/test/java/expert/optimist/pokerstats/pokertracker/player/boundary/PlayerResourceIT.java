@@ -66,7 +66,7 @@ public class PlayerResourceIT {
         copyFileToServer("/pokertracker-command/pokertracker.war", "pokertracker-command");
 
         copyFileToServer("/pokertracker-query/Dockerfile", "pokertracker-query");
-        copyFileToServer("/pokertracker-command/pokertracker-query.war", "pokertracker-command");
+        copyFileToServer("/pokertracker-query/pokertracker-query.war", "pokertracker-query");
 
         copyFileToServer("/initial_db.sql", "");
 
